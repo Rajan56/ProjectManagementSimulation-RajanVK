@@ -118,7 +118,7 @@
     if (state.view === "play") { drawPlayCharts(); bindRanges(); mountFloor(); }
     if (state.view === "debrief") { drawDebriefCharts(); drawScoreCard(); }
     if (state.tour != null) placeTour();
-    var first = app.querySelector(".dialog [data-autofocus], .tour [data-autofocus], .dialog .option, .dialog .btn-primary");
+    var first = app.querySelector(".dialog [data-autofocus], .tour [data-autofocus], .report-dock [data-autofocus], .dialog .option, .dialog .btn-primary");
     if (first) first.focus({ preventScroll: true });
   }
 
@@ -546,7 +546,8 @@
 
   function runMonth() {
     var g = state.game;
-    if (g.card || g.finished) return;
+    if (g.finished) return;
+    if (g.card) { state.dialog = null; render(); return; }
     E.runMonth(g);
     if (g.finished) {
       store("dd.current", null);
@@ -554,8 +555,12 @@
       return;
     }
     state.dialog = "report";
+    state.reportMin = false;
     saveCurrent();
     render();
+    var team = document.getElementById("team-card");
+    if (team) team.scrollIntoView({ block: "start", behavior: "auto" });
+    window.scrollBy(0, -70);
   }
 
   /* ---------- Dialogs ---------- */
@@ -594,8 +599,13 @@
     r.onLeave.forEach(function (n) { people.push('<li class="mid">' + esc(n) + " is on leave</li>"); });
     if (r.arriving) people.push('<li class="mid">' + r.arriving + " " + plural(r.arriving, "recruit starts", "recruits start") + " next month</li>");
     var next = g.card ? '<p class="next-up">Next up: <b>' + esc(g.card.title) + "</b></p>" : "";
-    return '<div class="overlay"><div class="dialog report" role="dialog" aria-modal="true" aria-labelledby="rep-title">' +
-      '<span class="chip accent">Month report</span><h2 id="rep-title">Month ' + r.m + " in review</h2>" +
+    if (state.reportMin) {
+      return '<aside class="report-dock min" role="region" aria-label="Month report">' +
+        '<span class="chip accent">Month ' + r.m + ' report</span><span class="dock-sum">' + n0(r.work) + " done, " + n0(r.found) + " back as rework</span>" +
+        '<div class="dock-actions"><button class="btn btn-small" data-action="report-min">Show</button><button class="btn btn-small btn-primary" data-action="report-ok">' + (g.card ? "Next: decision" : "Close") + "</button></div></aside>";
+    }
+    return '<aside class="report-dock" role="region" aria-labelledby="rep-title">' +
+      '<div class="dock-head"><span class="chip accent">Month report</span><button class="btn btn-small btn-link" data-action="report-min" aria-label="Minimise the month report">Minimise</button></div><h2 id="rep-title">Month ' + r.m + " in review</h2>" +
       '<div class="rep-stats">' +
       '<div><span class="k">Work done</span><b>' + n0(r.work) + "</b><span>" + esc(s.unit) + "</span></div>" +
       '<div><span class="k">Came back as rework</span><b class="bad-t">' + n0(r.found) + "</b><span>" + esc(s.unit) + "</span></div>" +
@@ -606,8 +616,8 @@
       (people.length ? '<h3>People</h3><ul class="people-list">' + people.join("") + "</ul>" : "") +
       '<div class="coach"><span class="eyebrow">Coach</span><p>' + esc(r.tip) + "</p></div>" +
       objectivesStrip(g) + next +
-      '<div class="actions" style="margin-top:16px"><button class="btn btn-primary" data-action="report-ok" data-autofocus>' + (g.card ? "Continue to the decision" : "Continue to month " + (g.month + 1)) + "</button></div>" +
-      "</div></div>";
+      '<div class="actions" style="margin-top:16px"><button class="btn btn-primary" data-action="report-ok" data-autofocus>' + (g.card ? "Continue to the decision" : "Close and plan month " + (g.month + 1)) + "</button></div>" +
+      "</aside>";
   }
 
   function releaseDialog() {
@@ -1010,7 +1020,8 @@
         E.respond(g, v); saveCurrent(); render();
         toast("Decision recorded");
         break;
-      case "report-ok": state.dialog = null; render(); break;
+      case "report-ok": state.dialog = null; state.reportMin = false; render(); break;
+      case "report-min": state.reportMin = !state.reportMin; render(); break;
       case "person":
         state.selected = Number(t.getAttribute("data-id"));
         var r = document.getElementById("roster");
