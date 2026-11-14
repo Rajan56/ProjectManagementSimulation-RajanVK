@@ -30,6 +30,8 @@
       baseError: 0.2,
       discoveryWeeks: 16,
       costPerFte: 9,
+      roles: ["Developer", "Developer", "Tester", "Developer", "UX designer", "Developer", "Security engineer"],
+      cards: { 2: "demo", 3: "training", 4: "refactor", 6: "status", 7: "contractors", 8: "burnout", 9: "testweek", 10: "status", 11: "scopecut", 12: "celebrate", 13: "status", 15: "status", 17: "status" },
       events: [
         {
           month: 3,
@@ -77,6 +79,8 @@
       baseError: 0.15,
       discoveryWeeks: 20,
       costPerFte: 10,
+      roles: ["Automation engineer", "Mechanical fitter", "Electrician", "Automation engineer", "Commissioning engineer", "Mechanical fitter"],
+      cards: { 2: "training", 3: "status", 4: "contractors", 5: "refactor", 7: "testweek", 8: "burnout", 9: "status", 10: "celebrate", 11: "status", 13: "status", 15: "status" },
       events: [
         {
           month: 4,
@@ -116,15 +120,17 @@
         "Build a 20,000 m2 warehouse for a logistics client. Weather, inspections and a demanding client test your plan.",
       brief:
         "Meridian Logistics needs its new distribution centre ready for the peak season. The site is large, the crews are big, and the client has a habit of changing its mind. Inspection findings late in the job are expensive to fix.",
-      scope: 3800,
+      scope: 4050,
       deadline: 14,
-      budget: 2450,
+      budget: 2570,
       experienced: 13,
       rookies: 2,
       productivity: 5.6,
       baseError: 0.12,
       discoveryWeeks: 22,
       costPerFte: 9,
+      roles: ["Site engineer", "Steel erector", "Foreman", "Electrician", "Concrete specialist", "Steel erector", "HVAC fitter"],
+      cards: { 2: "status", 3: "contractors", 4: "conflict", 5: "training", 6: "demo", 8: "automation", 9: "burnout", 10: "status", 11: "testweek", 12: "scopecut", 13: "celebrate", 15: "status", 17: "status", 19: "status" },
       events: [
         {
           month: 2,
@@ -164,15 +170,17 @@
         "Connect sensors, data and models into a working digital twin of a pulp mill. Data quality and IT/OT security bite.",
       brief:
         "Saimaa Pulp & Paper wants a digital twin of its fibre line to cut energy use and support sustainability reporting. Your team mixes data engineers, process experts and new graduates. Plant data is messier than anyone admitted at the kick-off.",
-      scope: 2200,
+      scope: 2350,
       deadline: 12,
-      budget: 1750,
+      budget: 1830,
       experienced: 9,
       rookies: 3,
       productivity: 5.8,
       baseError: 0.22,
       discoveryWeeks: 14,
       costPerFte: 9.5,
+      roles: ["Data engineer", "Process expert", "Data scientist", "Data engineer", "OT integration engineer", "Process expert"],
+      cards: { 2: "demo", 3: "automation", 4: "training", 5: "status", 7: "conflict", 8: "burnout", 9: "testweek", 10: "status", 11: "scopecut", 12: "celebrate", 13: "status", 15: "status", 17: "status" },
       events: [
         {
           month: 3,
