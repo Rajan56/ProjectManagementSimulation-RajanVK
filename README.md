@@ -3,6 +3,8 @@
 **A project management simulator built on system dynamics research.**
 Designed and built by Dr. Rajan Kumar V K, D.Sc. (Industrial Engineering and Management).
 
+**Play it live:** https://rajan56.github.io/ProjectManagementSimulation-RajanVK/
+
 Run a project month by month. Hire people, push overtime, invest in testing, decide how far project phases overlap, and answer change requests from the client. Status reports look fine for a while, but the rework nobody can see yet is what decides how the project ends. At the end, a debrief shows what really drove the result.
 
 ## Scenarios
