@@ -206,6 +206,7 @@
       "<div>" +
       '<span class="eyebrow">Project management simulator &middot; system dynamics</span>' +
       "<h1>Ninety percent done.<em>Again.</em></h1>" +
+      '<p class="hero-why" style="margin-top:20px;font-size:clamp(1.15rem,2.2vw,1.45rem);font-weight:600;line-height:1.35;max-width:34ch;color:var(--ink)">Why do projects stay at 90% for months? Run one and find out.</p>' +
       '<p class="hero-lede">You are the project manager. Lead a team of named people through a real project, month by month: hire, set overtime and testing, answer the client, look after your people. Your status reports will look fine for a while. <strong>The rework nobody can see yet is what decides how it ends.</strong></p>' +
       '<div class="hero-actions"><button class="btn btn-primary btn-big" data-action="scroll-scenarios">Choose a project</button><button class="btn btn-big" data-action="method">How the model works</button></div>' +
       resume +
