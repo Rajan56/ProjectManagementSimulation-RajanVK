@@ -1057,3 +1057,49 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
     border-top: 1px solid var(--line);
   }
 }
+
+/* docked month report: keeps the dashboard and team view visible */
+.report-dock {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  width: min(430px, calc(100vw - 32px));
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.3);
+  animation: dock-in 0.3s ease both;
+}
+.report-dock h2 { font-size: 1.6rem; text-transform: uppercase; margin: 6px 0 10px; }
+.report-dock h3 { font-family: var(--font-display); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.03em; margin: 14px 0 6px; }
+.report-dock .rep-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.report-dock .rep-stats b { font-size: 1.15rem; }
+.report-dock .rep-list { grid-template-columns: 1fr; gap: 2px; font-size: 0.88rem; }
+.report-dock .rep-list dd { margin-bottom: 6px; }
+.report-dock .coach { margin-top: 12px; }
+.report-dock .coach p { font-size: 0.9rem; }
+.report-dock .objectives { margin: 12px 0 0; gap: 6px; }
+.report-dock .obj { font-size: 0.8rem; padding: 4px 10px 4px 4px; }
+.dock-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.report-dock.min {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  width: auto;
+  max-width: calc(100vw - 32px);
+}
+.dock-sum { font-size: 0.86rem; color: var(--muted); font-family: var(--font-mono); }
+.dock-actions { display: flex; gap: 6px; margin-left: auto; }
+@keyframes dock-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+@media (max-width: 720px) {
+  .report-dock { right: 8px; left: 8px; bottom: 8px; width: auto; max-height: 58vh; }
+}
