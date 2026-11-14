@@ -7,14 +7,25 @@ Designed and built by Dr. Rajan Kumar V K, D.Sc. (Industrial Engineering and Man
 
 Run a project month by month. Hire people, push overtime, invest in testing, decide how far project phases overlap, and answer change requests from the client. Status reports look fine for a while, but the rework nobody can see yet is what decides how the project ends. At the end, a debrief shows what really drove the result.
 
+## What you do as the player
+
+- **Handle a decision every month:** client demos, burnout warnings, steering group status reports, contractor offers, test weeks, scope trimming and change requests. Every option has real effects in the model.
+- **Lead a named team:** each person has a role, experience level and energy, shown in a 3D office and a team list. New hires walk in, exhausted people resign.
+- **Set four levers:** hiring, overtime, reviews and testing, and phase overlap.
+- **Read a month report:** what your choices did, who joined or left, and a coaching tip.
+- **Chase three stars:** deliver on time, stay within budget, avoid burnout.
+- **Learn from the debrief:** reported versus true progress, insights drawn from your own decisions, a decision log, CSV export and a LinkedIn score card.
+
+A guided tour explains every number and lever on the first play, and every number has a "?" help button.
+
 ## Scenarios
 
 | Project | Sector | Difficulty | Scope | Deadline |
 |---|---|---|---|---|
 | Mobile Banking App | Software | Moderate | 2,500 features | 12 months |
 | Packaging Line Retrofit | Manufacturing | Moderate | 1,750 work packages | 10 months |
-| Distribution Warehouse | Construction | Hard | 3,800 work packages | 14 months |
-| Digital Twin Rollout | Industry 4.0 | Hard | 2,200 tasks | 12 months |
+| Distribution Warehouse | Construction | Hard | 4,050 work packages | 14 months |
+| Digital Twin Rollout | Industry 4.0 | Hard | 2,350 tasks | 12 months |
 
 All companies, products and people in the scenarios are fictional.
 
@@ -64,9 +75,11 @@ python -m http.server 8000
 index.html        page shell
 css/style.css     visual design
 js/scenarios.js   scenario library
-js/engine.js      simulation model, scoring and debrief logic
+js/cards.js       monthly decision cards
+js/engine.js      simulation model, team roster, scoring and debrief logic
 js/charts.js      small SVG chart helpers
-js/app.js         user interface
+js/floor3d.js     3D team office (three.js r128, loaded from cdnjs)
+js/app.js         user interface, guided tour, reports and help
 ```
 
 ## Copyright
