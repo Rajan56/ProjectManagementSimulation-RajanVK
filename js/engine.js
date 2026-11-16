@@ -157,6 +157,8 @@
       log: [],
       history: [],
       crLog: [],
+      trace: [],
+      choices: {},
       report: null,
       finished: false,
       outcome: null,
@@ -367,6 +369,7 @@
       label = fill(opt.label, card.ctx);
       note = fill(opt.note || "", card.ctx);
     }
+    if (s.choices) s.choices[card.month] = { id: card.id || "change", opt: String(optionId) };
     s.cardLog.push({ m: card.month, id: card.id || "change", title: card.title, choice: label, note: note });
     s.log.push({ m: card.month, kind: "decision", title: card.title, text: "You chose: " + label + "." + (note ? " " + note : "") });
     s.card = null;
@@ -416,6 +419,7 @@
     var ov = OVERLAP[d.overlap];
     var m = s.month + 1;
     var joined = [], left = [], back = [];
+    if (s.trace) s.trace.push({ m: m, hire: d.hire, overtime: d.overtime, qa: d.qa, overlap: d.overlap });
     var costStart = s.cost;
     var repStart = (s.correct + s.undisc) / s.scope;
 
@@ -821,6 +825,68 @@
     return out.slice(0, 7);
   }
 
+  /* ---------- Deterministic replay (what-if analysis) ---------- */
+
+  /*
+   * plan: { trace: [{hire, overtime, qa, overlap}, ...] (one per month, in order),
+   *         choices: { month: { id, opt } }, releaseAt: month or null }
+   * Months beyond the trace keep the last settings and hire nobody.
+   * A decision card whose id differs from the recorded one takes the first option
+   * (or "negotiate" for a change request).
+   */
+  function replay(scenarioId, plan) {
+    var s = newGame(scenarioId);
+    var trace = plan.trace || [];
+    var last = trace.length ? trace[trace.length - 1] : { overtime: 0, qa: 0.15, overlap: "medium" };
+    var guard = 0;
+    while (!s.finished && guard++ < 300) {
+      if (s.card) {
+        var rec = plan.choices ? plan.choices[s.card.month] : null;
+        var cid = s.card.id || "change";
+        var opt = rec && rec.id === cid ? rec.opt : (s.card.type === "change" ? "negotiate" : "0");
+        respond(s, opt);
+        continue;
+      }
+      if (plan.releaseAt != null && s.month >= plan.releaseAt && canRelease(s)) { release(s); break; }
+      var t = trace[s.month] || { hire: 0, overtime: last.overtime, qa: last.qa, overlap: last.overlap };
+      setDecisions(s, { hire: t.hire, overtime: t.overtime, qa: t.qa, overlap: t.overlap });
+      runMonth(s);
+    }
+    return s;
+  }
+
+  function planOf(s) {
+    return {
+      trace: (s.trace || []).map(function (t) { return { hire: t.hire, overtime: t.overtime, qa: t.qa, overlap: t.overlap }; }),
+      choices: JSON.parse(JSON.stringify(s.choices || {})),
+      releaseAt: s.outcome === "released" ? s.finishMonth : null
+    };
+  }
+
+  /* Loop strengths for one month of history: share of that month's effort each loop affected. */
+  function loopStrengths(row) {
+    var work = Math.max(1, row.work);
+    var staff = Math.max(1, row.staff);
+    return {
+      rework: row.found / work,
+      fatigue: row.fatigueErrors / work + P.fatigueProductivityHit * row.fatigue,
+      brooks: (P.mentoringLoad * row.rook + (1 - P.rookieProductivity) * row.rook) / staff,
+      knock: row.knock / work,
+      testing: row.caught / work
+    };
+  }
+
+  function registerScenario(sc) {
+    var list = root.DDScenarios.SCENARIOS;
+    for (var i = list.length - 1; i >= 0; i--) if (list[i].id === sc.id) list.splice(i, 1);
+    list.push(sc);
+  }
+
+  function unregisterScenario(id) {
+    var list = root.DDScenarios.SCENARIOS;
+    for (var i = list.length - 1; i >= 0; i--) if (list[i].id === id) list.splice(i, 1);
+  }
+
   function naiveForecast(s) {
     var h = s.history;
     if (h.length < 2) return null;
@@ -848,7 +914,12 @@
     insights: insights,
     naiveForecast: naiveForecast,
     effectiveStaff: effectiveStaff,
-    personEnergy: personEnergy
+    personEnergy: personEnergy,
+    replay: replay,
+    planOf: planOf,
+    loopStrengths: loopStrengths,
+    registerScenario: registerScenario,
+    unregisterScenario: unregisterScenario
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.DDEngine = api;

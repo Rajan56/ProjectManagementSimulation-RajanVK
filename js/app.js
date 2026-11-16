@@ -27,6 +27,7 @@
     hire: "Add people (+) or release people (-). New hires arrive next month and need about three months to reach full speed. Each hire costs about €6k to recruit; each release costs about €10k in severance.",
     overtime: "Extra working hours for the whole team. Output rises at once, but fatigue builds over a few weeks and brings more errors and resignations. Overtime also costs a 25% premium.",
     qa: "The share of effort spent reviewing and testing work. It slows building a little, but catches many errors at the source, while they are cheap to fix, and makes hidden flaws surface sooner.",
+    model: "The model behind the game. Boxes are stocks (things that accumulate), pipes are flows between them, and pipe width shows how big each flow was last month. The bars rank the feedback loops by how much of last month's effort they affected.",
     overlap: "How far later phases start before earlier ones are settled. More overlap is faster, but when an early flaw is found, more of the later work built on top of it must be redone."
   };
 
@@ -115,8 +116,9 @@
 
   function afterRender() {
     if (state.view === "home") drawHeroChart();
-    if (state.view === "play") { drawPlayCharts(); bindRanges(); mountFloor(); }
-    if (state.view === "debrief") { drawDebriefCharts(); drawScoreCard(); }
+    if (state.view === "play") { drawPlayCharts(); bindRanges(); mountFloor(); bindModel(); }
+    if (state.view === "debrief") { drawDebriefCharts(); drawScoreCard(); drawDebriefModel(); bindWhatIf(); }
+    if (state.view === "method") drawMethodModel();
     if (state.tour != null) placeTour();
     var first = app.querySelector(".dialog [data-autofocus], .tour [data-autofocus], .report-dock [data-autofocus], .dialog .option, .dialog .btn-primary");
     if (first) first.focus({ preventScroll: true });
@@ -184,7 +186,7 @@
       }
     }
 
-    var cards = SCENARIOS.map(function (s) {
+    var cards = SCENARIOS.filter(function (s) { return s.id.charAt(0) !== "_"; }).map(function (s) {
       var b = best[s.id];
       var bScore = typeof b === "number" ? b : b ? b.score : null;
       var bStars = b && typeof b === "object" ? b.stars : null;
@@ -370,7 +372,7 @@
       "</section>" +
       objectivesStrip(g, "obj-strip") +
       '<div class="cockpit">' +
-      "<div>" + kpis + teamCard + charts + '<h2 class="feed-h">Project log</h2><div class="feed" aria-live="polite">' + feedHtml() + "</div></div>" +
+      "<div>" + kpis + teamCard + modelCard() + charts + '<h2 class="feed-h">Project log</h2><div class="feed" aria-live="polite">' + feedHtml() + "</div></div>" +
       '<aside class="decisions" id="decisions" aria-label="Settings for next month">' + decisionsHtml() + "</aside>" +
       "</div>" +
       '<div class="mobile-run"><a class="btn" href="#decisions" data-action="to-settings">Settings</a><button class="btn btn-primary" data-action="run">Run month ' + (m + 1) + "</button></div>";
@@ -761,7 +763,9 @@
       '<div class="chart-card"><div class="chart-card-head"><h3>Team size</h3></div><p class="chart-note">Everyone working, including contractors.</p><div class="chart" id="d-staff"></div></div>' +
       '<div class="chart-card"><div class="chart-card-head"><h3>Team fatigue</h3></div><p class="chart-note">Builds with sustained overtime, recovers with normal hours.</p><div class="chart" id="d-fatigue"></div></div>' +
       "</div></section>" +
+      loopsSectionHtml(g) +
       '<section class="section"><div class="section-head"><h2>Your debrief</h2><p>The patterns that shaped this result, drawn from your own decisions.</p></div><div class="insights">' + insHtml + "</div></section>" +
+      whatIfHtml(g) +
       '<section class="section"><div class="section-head"><h2>Your decisions</h2><p>Every situation you handled, month by month. Useful for a team discussion or a workshop debrief.</p></div>' +
       (logRows ? '<div class="table-wrap"><table class="log-table"><thead><tr><th scope="col">Month</th><th scope="col">Situation</th><th scope="col">Your choice</th></tr></thead><tbody>' + logRows + "</tbody></table></div>" : "<p>No decisions were recorded.</p>") +
       '<div class="actions" style="margin-top:12px"><button class="btn" data-action="copy-log">Copy decision log</button>' + (top ? '<button class="btn" data-action="save-csv">Download game data (CSV)</button>' : "") + '</div><div class="status-line" id="log-status" role="status"></div></section>' +
@@ -915,6 +919,7 @@
       "<h2>How you are scored</h2>" +
       "<p>Three goals earn stars: deliver by the deadline, stay within budget, and avoid burnout (no exhausted resignations and team energy above 50%). The overall score out of 100 combines schedule (30%), budget (20%), quality (20%), stakeholder satisfaction (15%) and team health (15%). Quality reflects how much work was right the first time and how many flaws reached the client. Stakeholders react to your answers, to how reported progress tracks the plan, to the delivery date, and to whether your status reports were honest.</p>" +
       "<p>The model is deterministic: the same decisions always give the same result, so you can replay a project and compare strategies fairly. This also makes it suitable for workshops and courses, where groups play the same scenario and compare their decision logs.</p>" +
+      methodModelHtml() +
       "<h2>A note on realism</h2>" +
       "<p>This is a teaching model. Its parameters are illustrative and chosen so that the dynamics reported in the research appear clearly. They are not calibrated to any particular organisation, and the scenarios, companies and people are fictional.</p>" +
       '<h2>References</h2><div class="refs">' +
@@ -924,6 +929,7 @@
       "<p>Ford, D. N., &amp; Sterman, J. D. (1998). Dynamic modeling of product development processes. <i>System Dynamics Review, 14</i>(1), 31&ndash;68.</p>" +
       "<p>Lyneis, J. M., &amp; Ford, D. N. (2007). System dynamics applied to project management: A survey, assessment, and directions for future research. <i>System Dynamics Review, 23</i>(2&ndash;3), 157&ndash;189. https://doi.org/10.1002/sdr.377</p>" +
       "<p>Sterman, J. D. (2000). <i>Business dynamics: Systems thinking and modeling for a complex world</i>. Irwin/McGraw-Hill.</p>" +
+      "<p>Barlas, Y. (1996). Formal aspects of model validity and validation in system dynamics. <i>System Dynamics Review, 12</i>(3), 183&ndash;210. https://doi.org/10.1002/(SICI)1099-1727(199623)12:3&lt;183::AID-SDR103&gt;3.0.CO;2-4</p>" +
       "</div></div>" +
       '<aside style="display:grid;gap:16px;position:sticky;top:84px">' +
       '<div class="panel loop-card"><h3>The core loop</h3>' + loopSvg() + '<p class="hint" style="margin-top:8px">More schedule pressure leads to more overtime, more fatigue and more errors. The errors return later as rework, which adds to the pressure. A reinforcing loop.</p></div>' +
@@ -961,6 +967,234 @@
     return s;
   }
 
+  /* ---------- Model view, what-if replay, validation ---------- */
+
+  function modelCard() {
+    var g = state.game;
+    if (!window.DDModel) return "";
+    var last = g.history[g.history.length - 1];
+    var sum = g.month === 0 ? "Run a month to see the model at work" : "Strongest loop last month: " + window.DDModel.dominant(last).loop.name;
+    return '<details class="chart-card model-card" id="model-card"' + (state.modelOpen ? " open" : "") + '>' +
+      '<summary><span class="mc-title">Under the hood: the model ' + help("model", "About the model view") + '</span><span class="mc-sum">' + esc(sum) + '</span></summary>' +
+      '<div class="model-grid"><div class="sfd" id="sfd-play"></div><div>' +
+      (g.month ? window.DDModel.loopBars(last) : '<p class="hint">After your first month, this panel shows the stocks and flows of your project and which feedback loop is strongest.</p>') +
+      "</div></div></details>";
+  }
+
+  function bindModel() {
+    var el = document.getElementById("model-card");
+    if (!el) return;
+    var draw = function () { var host = document.getElementById("sfd-play"); if (host && el.open) window.DDModel.diagram(host, state.game); };
+    el.addEventListener("toggle", function () { state.modelOpen = el.open; draw(); });
+    draw();
+  }
+
+  var LOOP_CLS = { rework: "loop-rework", fatigue: "loop-fatigue", knock: "loop-knock", brooks: "loop-brooks", testing: "loop-testing" };
+
+  function loopsSectionHtml(g) {
+    if (!window.DDModel) return "";
+    var gi = 1;
+    g.history.forEach(function (r, i) { if (i > 0 && r.reported - r.truth > g.history[gi].reported - g.history[gi].truth) gi = i; });
+    var legend = window.DDModel.LOOPS.map(function (l) { return '<span><i class="lg-' + l.id + '"></i>' + l.code + " " + esc(l.name) + "</span>"; }).join("");
+    return '<section class="section" id="loops-sec"><div class="section-head"><h2>Which feedback loops drove it</h2><p>Each line shows the share of a month\'s effort a loop affected. Pick any month to see the model\'s stocks and flows at that moment.</p></div>' +
+      '<div class="chart-card"><div class="chart-card-head"><h3>Loop strength by month</h3><div class="legend">' + legend + '</div></div><div class="chart" id="d-loops"></div></div>' +
+      '<div class="chart-card" style="margin-top:14px"><div class="chart-card-head"><h3>The model in month <output id="sfd-m">' + g.history[gi].m + '</output></h3>' +
+      '<label class="month-pick">Month <input type="range" id="sfd-month" min="1" max="' + (g.history.length - 1) + '" value="' + gi + '"></label></div>' +
+      '<div class="model-grid"><div class="sfd" id="sfd-debrief"></div><div id="sfd-loops"></div></div></div></section>';
+  }
+
+  function drawDebriefModel() {
+    if (!window.DDModel) return;
+    var g = state.game;
+    var host = document.getElementById("d-loops");
+    if (host) {
+      var se = window.DDModel.series(g);
+      var ser = window.DDModel.LOOPS.map(function (l) { return { values: se[l.id], cls: LOOP_CLS[l.id], dot: false, width: l.balancing ? 1.8 : 2.4 }; });
+      C.lineChart(host, { xMax: g.history.length - 1, yMin: 0, height: 280, width: 900, deadline: g.deadline, yFmt: function (v) { return Math.round(v) + "%"; }, series: ser, label: "Feedback loop strength by month" });
+    }
+    var slider = document.getElementById("sfd-month");
+    var draw = function () {
+      var i = slider ? Number(slider.value) : g.history.length - 1;
+      var d = document.getElementById("sfd-debrief");
+      if (d) window.DDModel.diagram(d, g, i);
+      var lb = document.getElementById("sfd-loops");
+      if (lb) lb.innerHTML = window.DDModel.loopBars(g.history[i]);
+      var o = document.getElementById("sfd-m");
+      if (o) o.textContent = g.history[i].m;
+    };
+    if (slider) slider.addEventListener("input", draw);
+    draw();
+    drawWhatIfChart();
+  }
+
+  function presetsFor(g) {
+    var tr = g.trace || [];
+    var out = [];
+    if (!tr.length) return out;
+    var anyOt = tr.some(function (t) { return t.overtime > 0; });
+    var avgQa = tr.reduce(function (a, t) { return a + t.qa; }, 0) / tr.length;
+    var anyOv = tr.some(function (t) { return t.overlap !== "medium"; });
+    var late = tr.some(function (t, i) { return t.hire > 0 && i + 1 > 0.6 * g.deadline; });
+    if (anyOt) out.push({ id: "no-ot", label: "No overtime at all", apply: function (p) { p.trace.forEach(function (t) { t.overtime = 0; }); } });
+    if (Math.abs(avgQa - 0.2) > 0.01) out.push({ id: "qa20", label: "Testing at 20% every month", apply: function (p) { p.trace.forEach(function (t) { t.qa = 0.2; }); } });
+    if (anyOv) out.push({ id: "ov-med", label: "Medium phase overlap throughout", apply: function (p) { p.trace.forEach(function (t) { t.overlap = "medium"; }); } });
+    out.push({ id: "hire3", label: "Hire 3 more people in month 1", apply: function (p) { p.trace[0].hire = (p.trace[0].hire || 0) + 3; } });
+    if (late) out.push({ id: "no-late", label: "Skip the late hiring", apply: function (p) { p.trace.forEach(function (t, i) { if (i + 1 > 0.6 * g.deadline && t.hire > 0) t.hire = 0; }); } });
+    var cr = Object.keys(g.choices || {}).filter(function (m) { return g.choices[m].id === "change"; });
+    if (cr.length && g.choices[cr[0]].opt !== "negotiate") out.push({ id: "negotiate", label: "Negotiate the change request", apply: function (p) { cr.forEach(function (m) { p.choices[m].opt = "negotiate"; }); } });
+    var st = Object.keys(g.choices || {}).filter(function (m) { return g.choices[m].id === "status" && g.choices[m].opt !== "0"; });
+    if (st.length) out.push({ id: "honest", label: "Report honestly every time", apply: function (p) { st.forEach(function (m) { p.choices[m].opt = "0"; }); } });
+    if (g.outcome === "released") out.push({ id: "no-release", label: "Do not release early", apply: function (p) { p.releaseAt = null; } });
+    return out;
+  }
+
+  function whatIfHtml(g) {
+    if (!g.trace || !g.trace.length) return "";
+    var presets = presetsFor(g);
+    var months = g.trace.map(function (t, i) { return '<option value="' + i + '">Month ' + (i + 1) + "</option>"; }).join("");
+    var res = state.whatIf && state.whatIf.key === state.gameKey ? whatIfResultHtml() : "";
+    return '<section class="section" id="whatif-sec"><div class="section-head"><h2>What if?</h2><p>Replay your own game with one decision changed. Everything else stays exactly as you played it, so the difference is caused by that one change.</p></div>' +
+      '<div class="panel whatif"><div class="wi-presets">' + presets.map(function (p) {
+        return '<button class="btn btn-small' + (state.whatIf && state.whatIf.id === p.id && state.whatIf.key === state.gameKey ? " active" : "") + '" data-action="whatif" data-v="' + p.id + '">' + esc(p.label) + "</button>";
+      }).join("") + "</div>" +
+      '<div class="wi-custom"><span class="lbl">Or change one month:</span>' +
+      '<select id="wi-month" aria-label="Month">' + months + "</select>" +
+      '<select id="wi-lever" aria-label="Lever"><option value="hire">Hiring</option><option value="overtime">Overtime</option><option value="qa">Testing</option><option value="overlap">Phase overlap</option></select>' +
+      '<select id="wi-value" aria-label="New value">' + leverOptions("hire") + "</select>" +
+      '<button class="btn btn-small btn-primary" data-action="whatif-custom">Replay</button></div>' +
+      res + "</div></section>";
+  }
+
+  function leverOptions(lever) {
+    var o = [];
+    if (lever === "hire") for (var i = -2; i <= 8; i++) o.push([i, (i > 0 ? "+" : "") + i + " people"]);
+    if (lever === "overtime") [0, 0.1, 0.2, 0.3].forEach(function (v) { o.push([v, Math.round(v * 100) + "% overtime"]); });
+    if (lever === "qa") [0.05, 0.1, 0.15, 0.2, 0.25, 0.3].forEach(function (v) { o.push([v, Math.round(v * 100) + "% testing"]); });
+    if (lever === "overlap") ["low", "medium", "high"].forEach(function (v) { o.push([v, v.charAt(0).toUpperCase() + v.slice(1) + " overlap"]); });
+    return o.map(function (x) { return '<option value="' + x[0] + '">' + x[1] + "</option>"; }).join("");
+  }
+
+  function runWhatIf(id, label, mutate) {
+    var g = state.game;
+    var plan = E.planOf(g);
+    mutate(plan);
+    var alt = E.replay(g.scenarioId, plan);
+    state.whatIf = { id: id, label: label, game: alt, key: state.gameKey };
+    var y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+  }
+
+  function whatIfResultHtml() {
+    var a = state.game, b = state.whatIf.game;
+    var sa = E.scores(a), sb = E.scores(b);
+    var rows = [
+      ["Overall score", sa.overall, sb.overall, 1, function (v) { return String(v); }],
+      ["Stars (of 3)", sa.stars, sb.stars, 1, function (v) { return String(v); }],
+      ["Finished in month", a.finishMonth, b.finishMonth, -1, function (v) { return "M" + v; }],
+      ["Total cost", a.cost, b.cost, -1, eur],
+      ["Right first time", sa.fpy, sb.fpy, 1, pct],
+      ["Resignations", a.quits, b.quits, -1, function (v) { return String(v); }]
+    ];
+    var body = rows.map(function (r) {
+      var d = r[2] - r[1];
+      var tone = Math.abs(d) < 1e-6 ? "same" : (d * r[3] > 0 ? "better" : "worse");
+      var dTxt = tone === "same" ? "no change" : (d > 0 ? "+" : "−") + r[4](Math.abs(d)).replace(/^M/, "") + (r[0] === "Finished in month" ? (Math.abs(d) === 1 ? " month" : " months") : "");
+      return "<tr><th scope=\"row\">" + r[0] + '</th><td class="num">' + r[4](r[1]) + '</td><td class="num">' + r[4](r[2]) + '</td><td class="num wi-' + tone + '">' + dTxt + "</td></tr>";
+    }).join("");
+    var ds = sb.overall - sa.overall, dm = b.finishMonth - a.finishMonth;
+    var line = "With this one change, the project would have " + (dm < 0 ? "finished " + -dm + (dm === -1 ? " month" : " months") + " earlier" : dm > 0 ? "finished " + dm + (dm === 1 ? " month" : " months") + " later" : "finished in the same month") +
+      " and scored " + (ds === 0 ? "the same" : (ds > 0 ? ds + " points more" : -ds + " points less")) + ".";
+    return '<div class="wi-result"><h3>' + esc(state.whatIf.label) + "</h3><p>" + esc(line) + "</p>" +
+      '<div class="wi-grid"><div class="table-wrap"><table class="log-table wi-table"><thead><tr><th scope="col"></th><th scope="col">Your game</th><th scope="col">What if</th><th scope="col">Difference</th></tr></thead><tbody>' + body + "</tbody></table></div>" +
+      '<div class="chart-card" style="margin-top:0"><div class="chart-card-head"><h3>Truly finished work</h3><div class="legend"><span><i style="background:var(--truth)"></i>Your game</span><span><i class="lg-alt"></i>What if</span></div></div><div class="chart" id="d-whatif"></div></div></div></div>';
+  }
+
+  function drawWhatIfChart() {
+    var host = document.getElementById("d-whatif");
+    if (!host || !state.whatIf) return;
+    var a = state.game.history, b = state.whatIf.game.history;
+    var xMax = Math.max(a.length, b.length) - 1;
+    C.lineChart(host, {
+      xMax: xMax, yMin: 0, yMax: 100, yStep: 25, height: 260, width: 520, deadline: state.game.deadline, yFmt: function (v) { return v + "%"; },
+      series: [{ values: a.map(function (r) { return r.truth * 100; }), cls: "truth" }, { values: b.map(function (r) { return r.truth * 100; }), cls: "alt" }],
+      label: "Truly finished work, your game versus the what-if replay"
+    });
+  }
+
+  function methodModelHtml() {
+    var V = window.DDValidate ? window.DDValidate.run() : null;
+    var P = E.P;
+    var params = [
+      ["New hire productivity", pct(P.rookieProductivity), "Share of an experienced person's output"],
+      ["Coaching load", pct(P.mentoringLoad), "Experienced time taken per new hire"],
+      ["New hire error multiplier", P.rookieErrorMult + "×", "Relative to experienced staff"],
+      ["Time to become experienced", P.assimilationWeeks + " weeks", ""],
+      ["Recruitment delay", (P.hiringDelayWeeks - 1) + " to " + P.hiringDelayWeeks + " weeks", "Hires start at the beginning of next month"],
+      ["Coordination overhead", pct(P.commOverheadPerHead) + " per person above 8", "Capped at 30%"],
+      ["Fatigue effect on output", "−" + pct(P.fatigueProductivityHit), "At full fatigue"],
+      ["Fatigue effect on errors", "+" + pct(P.fatigueErrorHit), "At full fatigue"],
+      ["Fatigue build-up / recovery", P.fatigueRiseWeeks + " / " + P.fatigueRecoverWeeks + " weeks", "Time constants"],
+      ["Resignation rate", pct(P.baseQuitPerWeek) + " + " + pct(P.fatigueQuitPerWeek) + " × fatigue²", "Per person per week"],
+      ["Overtime pay rate", pct(P.overtimePremium), "Of the normal hourly cost"],
+      ["Review catch strength", String(P.reviewCatch), "Caught share = 1 − e^(−k × testing)"],
+      ["Testing cost in build capacity", pct(P.qaCapacityShare) + " of testing effort", ""]
+    ];
+    var paramRows = params.map(function (p) { return "<tr><th scope=\"row\">" + p[0] + '</th><td class="num">' + p[1] + "</td><td>" + p[2] + "</td></tr>"; }).join("");
+    var scRows = SCENARIOS.filter(function (s) { return s.id.charAt(0) !== "_"; }).map(function (s) {
+      return "<tr><th scope=\"row\">" + esc(s.title) + '</th><td class="num">' + n0(s.scope) + '</td><td class="num">' + s.productivity + '</td><td class="num">' + pct(s.baseError) + '</td><td class="num">' + s.discoveryWeeks + " wk</td><td class=\"num\">" + s.experienced + " + " + s.rookies + "</td></tr>";
+    }).join("");
+    var vt = "";
+    if (V) {
+      var passed = V.results.filter(function (r) { return r.pass; }).length;
+      vt = '<p><b>' + passed + " of " + V.results.length + " tests pass</b>, run live in your browser just now (" + V.ms + " ms).</p>" +
+        '<div class="table-wrap"><table class="log-table val-table"><thead><tr><th scope="col">Result</th><th scope="col">Test</th><th scope="col">Measured</th><th scope="col">Expected</th></tr></thead><tbody>' +
+        V.results.map(function (r) {
+          return '<tr><td><span class="chip ' + (r.pass ? "good" : "bad") + '">' + (r.pass ? "Pass" : "Fail") + "</span></td><td><span class=\"val-group\">" + esc(r.group) + "</span><br>" + esc(r.name) + "</td><td>" + esc(r.measured) + "</td><td>" + esc(r.expect) + "</td></tr>";
+        }).join("") + "</tbody></table></div>";
+    }
+    return "<h2>Model structure</h2>" +
+      "<p>The diagram shows the model's stocks (boxes) and flows (pipes) in month 9 of an example run with heavy overtime and little testing. Pipe width follows the size of each flow. During a game you can open the same view under <i>Under the hood</i>, and the debrief shows it for any month.</p>" +
+      '<div class="chart-card" style="margin:12px 0 18px"><div class="sfd" id="sfd-method"></div></div>' +
+      "<h2>Equations</h2>" +
+      "<p>The model advances in weekly steps. For each week:</p>" +
+      '<pre class="eq">capacity  = (E − 0.25·N + 0.4·N + 0.85·C) × (1 − coordination)\n            × (1 + overtime) × (1 − 0.35·fatigue) × overlap speed × productivity\n' +
+      "error rate e = (base error + overlap effect) × experience mix\n            × (1 − 0.8·(testing − 0.15)) × (1 + 1.2·fatigue)\n" +
+      "caught c   = 1 − exp(−3.5·testing)\n" +
+      "work rate  = min(work to do, capacity × (1 − 0.6·testing) / (1 + 0.3·e·c))\n" +
+      "hidden rework inflow = work rate × e × (1 − c)\n" +
+      "discovery  = hidden rework / T,  T = base time × (0.15 / testing)^0.7 / (1 + 1.5·progress³)\n" +
+      "knock-on   = discovery × overlap factor × (0.4 + 1.6·progress)\n" +
+      "fatigue    ← fatigue + (min(1, 3·overtime) − fatigue) / τ,  τ = 6 weeks rising, 4 falling\n" +
+      "resignations = staff × (0.002 + 0.012·fatigue²) per week, most tired person first\n" +
+      "learning   : a new hire becomes experienced after 12 weeks</pre>" +
+      "<p>E, N and C are experienced staff, new hires and contractors. Reported progress counts both correct work and hidden rework; true progress counts only correct work.</p>" +
+      "<h2>Parameters</h2>" +
+      '<div class="table-wrap"><table class="log-table"><thead><tr><th scope="col">Parameter</th><th scope="col">Value</th><th scope="col">Note</th></tr></thead><tbody>' + paramRows + "</tbody></table></div>" +
+      '<div class="table-wrap" style="margin-top:12px"><table class="log-table"><thead><tr><th scope="col">Scenario</th><th scope="col">Scope</th><th scope="col">Output per person-week</th><th scope="col">Base error rate</th><th scope="col">Base discovery time</th><th scope="col">Team at start</th></tr></thead><tbody>' + scRows + "</tbody></table></div>" +
+      "<h2>Validation tests</h2>" +
+      "<p>System dynamics models are tested for sound structure, sensible behaviour under extreme conditions, and their ability to reproduce known behaviour patterns (Barlas, 1996; Sterman, 2000). These tests are part of the site's code and run every time this page opens.</p>" + vt;
+  }
+
+  function drawMethodModel() {
+    var host = document.getElementById("sfd-method");
+    if (!host || !window.DDModel) return;
+    var g = E.newGame("software");
+    var guard = 0;
+    while (!g.finished && g.month < 9 && guard++ < 60) {
+      if (g.card) { E.respond(g, g.card.type === "change" ? "accept" : "0"); continue; }
+      E.setDecisions(g, { hire: g.month === 0 ? 8 : 0, overtime: g.month >= 4 ? 0.2 : 0, qa: 0.05, overlap: "high" });
+      E.runMonth(g);
+    }
+    window.DDModel.diagram(host, g);
+  }
+
+  function bindWhatIf() {
+    var lever = document.getElementById("wi-lever");
+    var value = document.getElementById("wi-value");
+    if (lever && value) lever.addEventListener("change", function () { value.innerHTML = leverOptions(lever.value); });
+  }
+
   /* ---------- Actions ---------- */
 
   function startGame(id, withTour) {
@@ -968,6 +1202,7 @@
     state.game = E.newGame(id);
     state.gameKey = Date.now();
     state.selected = null;
+    state.whatIf = null;
     saveCurrent();
     state.view = "play";
     state.dialog = null;
@@ -1041,6 +1276,19 @@
       case "copy-log": copyText(logText(), "log-status", "Decision log copied.", null); break;
       case "save-card": saveCard(); break;
       case "save-csv": saveCsv(); break;
+      case "whatif":
+        var pr = presetsFor(g).filter(function (p) { return p.id === v; })[0];
+        if (pr) runWhatIf(pr.id, pr.label, pr.apply);
+        break;
+      case "whatif-custom":
+        var wm = Number(document.getElementById("wi-month").value);
+        var wl = document.getElementById("wi-lever").value;
+        var wv = document.getElementById("wi-value").value;
+        var val = wl === "overlap" ? wv : Number(wv);
+        var names = { hire: "hiring", overtime: "overtime", qa: "testing", overlap: "phase overlap" };
+        var shown = wl === "hire" ? (val > 0 ? "+" : "") + val + " people" : wl === "overlap" ? val : Math.round(val * 100) + "%";
+        runWhatIf("custom", "Month " + (wm + 1) + ": " + names[wl] + " set to " + shown, function (p) { p.trace[wm][wl] = val; });
+        break;
     }
   });
 
